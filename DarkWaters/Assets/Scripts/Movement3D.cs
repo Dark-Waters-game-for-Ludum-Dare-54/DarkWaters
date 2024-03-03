@@ -9,6 +9,7 @@ public class Movement3D : MonoBehaviour
 
     public Transform bodyRotation;
 
+
     [HideInInspector]
     public float maxSpeed = 1.0f;
 
@@ -27,6 +28,7 @@ public class Movement3D : MonoBehaviour
 
 
     private Quaternion rotationTarget;
+    private Quaternion initialRotation;
 
     private Rigidbody mainRigidbody;
     private Animator _animator;
@@ -62,6 +64,12 @@ public class Movement3D : MonoBehaviour
             return isGroundedTrigger.isTriggered;
         }
         return false;
+    }
+
+    public void ResetRotation()
+    {
+        rotationTarget = initialRotation;
+        bodyRotation.rotation = rotationTarget;
     }
 
     public void Move(Vector2 motion)
@@ -181,6 +189,7 @@ public class Movement3D : MonoBehaviour
         mainRigidbody = GetComponent<Rigidbody>();
 
         rotationTarget = bodyRotation.rotation;
+        initialRotation = bodyRotation.rotation;
     }
 
     private void Start()
@@ -233,21 +242,21 @@ public class Movement3D : MonoBehaviour
 
     private void OnFootstep(AnimationEvent animationEvent)
     {
-        if (animationEvent.animatorClipInfo.weight > 0.5f)
-        {
-            if (FootstepAudioClips.Length > 0)
-            {
-                var index = Random.Range(0, FootstepAudioClips.Length);
-                AudioSource.PlayClipAtPoint(FootstepAudioClips[index], transform.position, FootstepAudioVolume);
-            }
-        }
+        // if (animationEvent.animatorClipInfo.weight > 0.5f)
+        // {
+        //     if (FootstepAudioClips.Length > 0)
+        //     {
+        //         var index = Random.Range(0, FootstepAudioClips.Length);
+        //         AudioSource.PlayClipAtPoint(FootstepAudioClips[index], transform.position, FootstepAudioVolume);
+        //     }
+        // }
     }
 
     private void OnLand(AnimationEvent animationEvent)
     {
-        if (animationEvent.animatorClipInfo.weight > 0.5f)
-        {
-            AudioSource.PlayClipAtPoint(LandingAudioClip, transform.position, FootstepAudioVolume);
-        }
+        // if (animationEvent.animatorClipInfo.weight > 0.5f)
+        // {
+        //     // AudioSource.PlayClipAtPoint(LandingAudioClip, transform.position, FootstepAudioVolume);
+        // }
     }
 }

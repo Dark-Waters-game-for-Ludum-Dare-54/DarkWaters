@@ -31,6 +31,9 @@ public class CharacterMovement : MonoBehaviour
     public int dashInMidAirMaxNumber = 2;
 
 
+    public PlayerHealth playerHealth;
+
+
     private Movement3D movement3D;
 
     private PlayerInputs inputActions;
@@ -54,6 +57,26 @@ public class CharacterMovement : MonoBehaviour
 
     private bool isSupposedToDash = false;
     private bool isDashing = false;
+
+
+
+    private bool isLocked = false;
+    
+    public void Lock()
+    {
+        isLocked = true;
+        
+        inputActions.Disable();
+    }
+
+    public void Unlock()
+    {
+        isLocked = false;
+        
+        inputActions.Enable();
+    }
+
+
 
 
     private void Move2D(InputAction.CallbackContext context)
@@ -118,7 +141,7 @@ public class CharacterMovement : MonoBehaviour
         //print("SlowDownDash");
     }
 
-    private void Start()
+    private void Awake()
     {
         // get a reference to our main camera
         if (_mainCamera == null)
@@ -238,6 +261,7 @@ public class CharacterMovement : MonoBehaviour
             if (dashDurationCounter < 0f)
             {
                 movement3D.StopDash();
+                playerHealth.MakeVulnerable();
                 isDashing = false;
             }
         }
@@ -249,6 +273,7 @@ public class CharacterMovement : MonoBehaviour
                 dashInMidAirCounter++;
 
                 movement3D.Dash(dashSpeedCoef);
+                playerHealth.MakeInvincible();
 
                 dashCounter = dashCoolDown;
                 dashDurationCounter = dashDuration;

@@ -21,7 +21,18 @@ public class Attack : MonoBehaviour
     public GameObject attackCollider;
 
 
-    private void Start()
+    public void Lock()
+    {
+        inputActions.Disable();
+    }
+
+    public void Unlock()
+    {
+        inputActions.Enable();
+    }
+
+
+    private void Awake()
     {
         inputActions = new PlayerInputs();
         inputActions.Enable();

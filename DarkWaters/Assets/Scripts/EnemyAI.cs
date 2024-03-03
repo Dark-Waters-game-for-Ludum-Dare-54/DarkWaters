@@ -14,6 +14,7 @@ public class EnemyAI : MonoBehaviour
 
 
     public Transform intoPosition;
+    public Transform deathPosition;
 
     public Transform[] attackLocations;
 
@@ -21,7 +22,7 @@ public class EnemyAI : MonoBehaviour
     public GameObject debugLightElement;
 
 
-    private StateMachine stateMachine;
+    private EnemyStateMachine enemyStateMachine;
 
 
 
@@ -30,9 +31,9 @@ public class EnemyAI : MonoBehaviour
 
 
 
-    public float shakeDirectImpulseAmplitude = 0.1f;
-    public float shakeCommonImpulseAmplitude = 0.1f;
-    public float shakeDuration = 1f;
+    public float shakeDirectImpulseAmplitude = 2.0f;
+    public float shakeCommonImpulseAmplitude = 50.0f;
+    public float shakeDuration = 0.1f;
 
 
     public float introDuration = 0.5f;
@@ -42,58 +43,101 @@ public class EnemyAI : MonoBehaviour
 
 
 
+    private bool isLocked = false;
+
+
     public void OnDamageReceived()
     {
-        stateMachine.ChangeStateIfAllowed(StateType.Damage);
+        if (isLocked)
+        {
+            return;
+        }
+
+        enemyStateMachine.ChangeEnemyStateIfAllowed(EnemyStateType.Damage);
+    }
+
+    public void OnDeath()
+    {
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.Dead);
+    }
+
+    public void Lock()
+    {
+        isLocked = true;
+        enemyStateMachine.Stop();
+    }
+
+    public void Unlock()
+    {
+        isLocked = false;
+
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.Intro);
+    }
+
+    public void StartBattle()
+    {
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.MoveToNewLocation);
+    }
+
+    public void StartStandingOverPlayersCorpse()
+    {
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.StandingOverPlayersCorpse);
     }
 
 
-    private void Start()
+    private void Awake()
     {
         //cinemachineCommonImpulseSource.GenerateImpulse(shakeCommonImpulseAmplitude);
         //cinemachineDirectImpulseSource.GenerateImpulse(directionToPlayer * shakeDirectImpulseAmplitude);
 
-        stateMachine = new StateMachine(this);
+        enemyStateMachine = new EnemyStateMachine(this);
 
-        foreach (var state in stateMachine.states)
+        foreach (var enemyState in enemyStateMachine.enemyStates)
         {
-            state.Value.player = player;
-            state.Value.transform = transform;
-            state.Value.cinemachineCommonImpulseSource = cinemachineCommonImpulseSource;
-            state.Value.cinemachineDirectImpulseSource = cinemachineDirectImpulseSource;
-            state.Value.shakeDirectImpulseAmplitude = shakeDirectImpulseAmplitude;
-            state.Value.shakeCommonImpulseAmplitude = shakeCommonImpulseAmplitude;
-            state.Value.shakeDuration = shakeDuration;
+            enemyState.Value.player = player;
+            enemyState.Value.transform = transform;
+            enemyState.Value.cinemachineCommonImpulseSource = cinemachineCommonImpulseSource;
+            enemyState.Value.cinemachineDirectImpulseSource = cinemachineDirectImpulseSource;
+            enemyState.Value.shakeDirectImpulseAmplitude = shakeDirectImpulseAmplitude;
+            enemyState.Value.shakeCommonImpulseAmplitude = shakeCommonImpulseAmplitude;
+            enemyState.Value.shakeDuration = shakeDuration;
         }
 
-        IntroState introState = stateMachine.states[StateType.Intro] as IntroState;
-        introState.intoPosition = intoPosition;
-        introState.debugLightElement = debugLightElement;
-        introState.introDuration = introDuration;
+        IntroEnemyState introEnemyState = enemyStateMachine.enemyStates[EnemyStateType.Intro] as IntroEnemyState;
+        introEnemyState.intoPosition = intoPosition;
+        introEnemyState.debugLightElement = debugLightElement;
+        introEnemyState.introDuration = introDuration;
 
 
-        MoveToNewLocationState moveToNewLocationState = stateMachine.states[StateType.MoveToNewLocation] as MoveToNewLocationState;
-        moveToNewLocationState.attackLocations = attackLocations;
-        moveToNewLocationState.moveToNewLocationDuration = moveToNewLocationDuration;
+        MoveToNewLocationEnemyState moveToNewLocationEnemyState = enemyStateMachine.enemyStates[EnemyStateType.MoveToNewLocation] as MoveToNewLocationEnemyState;
+        moveToNewLocationEnemyState.attackLocations = attackLocations;
+        moveToNewLocationEnemyState.moveToNewLocationDuration = moveToNewLocationDuration;
+        moveToNewLocationEnemyState.debugLightElement = debugLightElement;
 
 
-        AttackPreparationState attackPreparationState = stateMachine.states[StateType.AttackPreparation] as AttackPreparationState;
-        attackPreparationState.enemyAttackPool = enemyAttackPool;
-        //attackPreparationState.attackPreperation = attackPreperation;
-        // attackPreparationState.attackPreperationDuration = attackPreperationDuration;
+        AttackPreparationEnemyState attackPreparationEnemyState = enemyStateMachine.enemyStates[EnemyStateType.AttackPreparation] as AttackPreparationEnemyState;
+        attackPreparationEnemyState.enemyAttackPool = enemyAttackPool;
+        //attackPreparationEnemyState.attackPreperation = attackPreperation;
+        // attackPreparationEnemyState.attackPreperationDuration = attackPreperationDuration;
 
-        AttackState attackState = stateMachine.states[StateType.Attack] as AttackState;
-        //attackState.attackCollider = attackCollider;
-        //attackState.attackPreperation = attackPreperation;
-        attackState.enemyAttackPool = enemyAttackPool;
-        attackState.debugLightElement = debugLightElement;
-        // attackState.attackDuration = attackDuration;
+        AttackEnemyState attackEnemyState = enemyStateMachine.enemyStates[EnemyStateType.Attack] as AttackEnemyState;
+        //attackEnemyState.attackCollider = attackCollider;
+        //attackEnemyState.attackPreperation = attackPreperation;
+        attackEnemyState.enemyAttackPool = enemyAttackPool;
+        attackEnemyState.debugLightElement = debugLightElement;
+        // attackEnemyState.attackDuration = attackDuration;
 
-        DamageState damageState = stateMachine.states[StateType.Damage] as DamageState;
-        damageState.faintDuration = faintDuration;
+        DamageEnemyState damageEnemyState = enemyStateMachine.enemyStates[EnemyStateType.Damage] as DamageEnemyState;
+        damageEnemyState.faintDuration = faintDuration;
+
+        DeadEnemyState deadEnemyState = enemyStateMachine.enemyStates[EnemyStateType.Dead] as DeadEnemyState;
+        deadEnemyState.deathPosition = deathPosition;
+        deadEnemyState.debugLightElement = debugLightElement;
 
 
-        stateMachine.Start();
+        StandingOverPlayersCorpseEnemyState standingOverPlayersCorpseEnemyState = enemyStateMachine.enemyStates[EnemyStateType.StandingOverPlayersCorpse] as StandingOverPlayersCorpseEnemyState;
+        standingOverPlayersCorpseEnemyState.debugLightElement = debugLightElement;
+
 
     }
 
@@ -111,32 +155,32 @@ public class EnemyAI : MonoBehaviour
 
 
 
-class StateMachine
+class EnemyStateMachine
 {
 
-    public Dictionary<StateType, State> states;
+    public Dictionary<EnemyStateType, EnemyState> enemyStates;
 
     public MonoBehaviour enemyAI;
 
-    private State currentState;
+    private EnemyState currentEnemyState;
 
-    private StateSharedData stateSharedData;
+    private EnemyStateSharedData enemyStateSharedData;
 
-    public StateMachine(MonoBehaviour enemyAI)
+    public EnemyStateMachine(MonoBehaviour enemyAI)
     {
         this.enemyAI = enemyAI;
 
-        stateSharedData = new StateSharedData();
+        enemyStateSharedData = new EnemyStateSharedData();
 
-        states = CreateDictionary();
+        enemyStates = CreateDictionary();
 
-        currentState = states[StateType.Intro];
+        currentEnemyState = enemyStates[EnemyStateType.Intro];
     }
 
     public void Start()
     {
-        // Debug.Log("StateMachine Start");
-        currentState.Start();
+        // Debug.Log("EnemyStateMachine Start");
+        currentEnemyState.Start();
     }
 
 
@@ -152,47 +196,66 @@ class StateMachine
     }
 
 
-    public void ChangeState(StateType stateType)
+    public void ChangeEnemyState(EnemyStateType enemyStateType)
     {
-        currentState = states[stateType];
-        currentState.Start();
+        currentEnemyState = enemyStates[enemyStateType];
+        currentEnemyState.Start();
     }
 
-    public void ChangeStateIfAllowed(StateType stateType)
+    public void ChangeEnemyStateIfAllowed(EnemyStateType enemyStateType)
     {
-        if (!currentState.GetCanBeInterrupted())
+        if (!currentEnemyState.GetCanBeInterrupted())
         {
             return;
         }
 
-        currentState.Stop();
+        currentEnemyState.Stop();
 
-        currentState = states[stateType];
+        currentEnemyState = enemyStates[enemyStateType];
 
-        currentState.Start();
+        currentEnemyState.Start();
     }
 
-    private Dictionary<StateType, State> CreateDictionary()
+    public void ChangeEnemyStateForced(EnemyStateType enemyStateType)
     {
-        Dictionary<StateType, State> states = new()
+        currentEnemyState.Stop();
+
+        currentEnemyState = enemyStates[enemyStateType];
+
+        currentEnemyState.Start();
+    }
+
+    public void Stop()
+    {
+        // Debug.Log("EnemyStateMachine Stop");
+        currentEnemyState.Stop();
+        currentEnemyState = enemyStates[EnemyStateType.None];
+    }
+
+    private Dictionary<EnemyStateType, EnemyState> CreateDictionary()
+    {
+        Dictionary<EnemyStateType, EnemyState> enemyStates = new()
         {
-            { StateType.Intro, new IntroState(this, stateSharedData) },
-            { StateType.MoveToNewLocation, new MoveToNewLocationState(this, stateSharedData) },
-            { StateType.AttackPreparation, new AttackPreparationState(this, stateSharedData) },
-            { StateType.Attack, new AttackState(this, stateSharedData) },
-            { StateType.Damage, new DamageState(this, stateSharedData) },
+            { EnemyStateType.Intro, new IntroEnemyState(this, enemyStateSharedData) },
+            { EnemyStateType.MoveToNewLocation, new MoveToNewLocationEnemyState(this, enemyStateSharedData) },
+            { EnemyStateType.AttackPreparation, new AttackPreparationEnemyState(this, enemyStateSharedData) },
+            { EnemyStateType.Attack, new AttackEnemyState(this, enemyStateSharedData) },
+            { EnemyStateType.Damage, new DamageEnemyState(this, enemyStateSharedData) },
+            { EnemyStateType.Dead, new DeadEnemyState(this, enemyStateSharedData) },
+            { EnemyStateType.StandingOverPlayersCorpse, new StandingOverPlayersCorpseEnemyState(this, enemyStateSharedData) },
+            { EnemyStateType.None, new EnemyState(this, enemyStateSharedData) }
         };
-        return states;
+        return enemyStates;
     }
 }
 
-class StateSharedData
+class EnemyStateSharedData
 {
     public int enemyAttackId = 0;
 }
 
 
-enum StateType
+enum EnemyStateType
 {
     Intro,
     MoveToNewLocation,
@@ -200,10 +263,12 @@ enum StateType
     // We can cancel the attack if the player is fast enough
     Attack,
     Damage,
-    Dead
+    Dead,
+    StandingOverPlayersCorpse,
+    None
 }
 
-class State
+class EnemyState
 {
 
     public Transform player;
@@ -217,23 +282,23 @@ class State
     public float shakeDuration;
 
 
-    protected StateMachine stateMachine;
-    protected StateSharedData stateSharedData;
+    protected EnemyStateMachine enemyStateMachine;
+    protected EnemyStateSharedData enemyStateSharedData;
 
-    public State(StateMachine stateMachine, StateSharedData stateSharedData)
+    public EnemyState(EnemyStateMachine enemyStateMachine, EnemyStateSharedData enemyStateSharedData)
     {
-        this.stateMachine = stateMachine;
-        this.stateSharedData = stateSharedData;
+        this.enemyStateMachine = enemyStateMachine;
+        this.enemyStateSharedData = enemyStateSharedData;
     }
 
     public virtual void Start()
     {
-        // Debug.Log("State Start");
+        // Debug.Log("EnemyState Start");
     }
 
     public virtual void Stop()
     {
-        // Debug.Log("State Stop");
+        // Debug.Log("EnemyState Stop");
     }
 
     public virtual bool GetCanBeInterrupted()
@@ -243,7 +308,7 @@ class State
 }
 
 
-class IntroState : State
+class IntroEnemyState : EnemyState
 {
     public Transform intoPosition;
 
@@ -254,25 +319,25 @@ class IntroState : State
     private Coroutine coroutine = null;
 
 
-    public IntroState(StateMachine stateMachine, StateSharedData stateSharedData) : base(stateMachine, stateSharedData)
+    public IntroEnemyState(EnemyStateMachine enemyStateMachine, EnemyStateSharedData enemyStateSharedData) : base(enemyStateMachine, enemyStateSharedData)
     {
     }
 
     public override void Start()
     {
-        // Debug.Log("IntroState Start");
-        coroutine = stateMachine.StartCoroutine(IntroCoroutine());
+        // Debug.Log("IntroEnemyState Start");
+        coroutine = enemyStateMachine.StartCoroutine(IntroCoroutine());
     }
 
     public override void Stop()
     {
-        // Debug.Log("IntroState Stop");
+        // Debug.Log("IntroEnemyState Stop");
 
         if (coroutine != null)
         {
             debugLightElement.SetActive(false);
 
-            stateMachine.StopCoroutine(coroutine);
+            enemyStateMachine.StopCoroutine(coroutine);
         }
     }
 
@@ -316,33 +381,34 @@ class IntroState : State
         }
 
 
-        debugLightElement.SetActive(false);
+        // debugLightElement.SetActive(false);
 
-        stateMachine.ChangeState(StateType.MoveToNewLocation);
+        // enemyStateMachine.ChangeEnemyState(EnemyStateType.MoveToNewLocation);
 
         coroutine = null;
     }
 }
 
 
-class MoveToNewLocationState : State
+class MoveToNewLocationEnemyState : EnemyState
 {
     public Transform[] attackLocations;
 
+    public GameObject debugLightElement;
 
     public float moveToNewLocationDuration;
 
 
     private Coroutine coroutine = null;
 
-    public MoveToNewLocationState(StateMachine stateMachine, StateSharedData stateSharedData) : base(stateMachine, stateSharedData)
+    public MoveToNewLocationEnemyState(EnemyStateMachine enemyStateMachine, EnemyStateSharedData enemyStateSharedData) : base(enemyStateMachine, enemyStateSharedData)
     {
     }
 
     public override void Start()
     {
         // Debug.Log("MoveToNewLocation Start");
-        coroutine = stateMachine.StartCoroutine(MoveToNewLocationCoroutine());
+        coroutine = enemyStateMachine.StartCoroutine(MoveToNewLocationCoroutine());
     }
 
     public override void Stop()
@@ -351,13 +417,14 @@ class MoveToNewLocationState : State
 
         if (coroutine != null)
         {
-            stateMachine.StopCoroutine(coroutine);
+            enemyStateMachine.StopCoroutine(coroutine);
         }
     }
 
 
     private IEnumerator MoveToNewLocationCoroutine()
     {
+        debugLightElement.SetActive(false);
 
         float goingUpDuration = moveToNewLocationDuration / 2.0f;
 
@@ -405,7 +472,7 @@ class MoveToNewLocationState : State
 
         transform.position = toPosition;
 
-        stateMachine.ChangeState(StateType.AttackPreparation);
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.AttackPreparation);
 
         coroutine = null;
     }
@@ -420,13 +487,13 @@ class MoveToNewLocationState : State
     }
 }
 
-class AttackPreparationState : State
+class AttackPreparationEnemyState : EnemyState
 {
     public EnemyAttack[] enemyAttackPool;
 
     private Coroutine coroutine = null;
 
-    public AttackPreparationState(StateMachine stateMachine, StateSharedData stateSharedData) : base(stateMachine, stateSharedData)
+    public AttackPreparationEnemyState(EnemyStateMachine enemyStateMachine, EnemyStateSharedData enemyStateSharedData) : base(enemyStateMachine, enemyStateSharedData)
     {
 
     }
@@ -434,7 +501,7 @@ class AttackPreparationState : State
     public override void Start()
     {
         // Debug.Log("AttackPreparation Start");
-        coroutine = stateMachine.StartCoroutine(AttackPreparationCoroutine());
+        coroutine = enemyStateMachine.StartCoroutine(AttackPreparationCoroutine());
     }
 
     public override void Stop()
@@ -443,8 +510,8 @@ class AttackPreparationState : State
 
         if (coroutine != null)
         {
-            stateMachine.StopCoroutine(coroutine);
-            enemyAttackPool[stateSharedData.enemyAttackId].OnEnemyAttackPreperationInterrupted();
+            enemyStateMachine.StopCoroutine(coroutine);
+            enemyAttackPool[enemyStateSharedData.enemyAttackId].OnEnemyAttackPreperationInterrupted();
         }
     }
 
@@ -461,7 +528,7 @@ class AttackPreparationState : State
         transform.rotation = Quaternion.LookRotation(directionToPlayer, Vector3.up);
 
         int randomIndex = Random.Range(0, enemyAttackPool.Length);
-        stateSharedData.enemyAttackId = randomIndex;
+        enemyStateSharedData.enemyAttackId = randomIndex;
 
 
         float elapsed = 0f;
@@ -476,14 +543,14 @@ class AttackPreparationState : State
             yield return null;
         }
 
-        stateMachine.ChangeState(StateType.Attack);
-        
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.Attack);
+
         coroutine = null;
     }
 
 }
 
-class AttackState : State
+class AttackEnemyState : EnemyState
 {
     public EnemyAttack[] enemyAttackPool;
 
@@ -491,14 +558,14 @@ class AttackState : State
 
     private Coroutine coroutine = null;
 
-    public AttackState(StateMachine stateMachine, StateSharedData stateSharedData) : base(stateMachine, stateSharedData)
+    public AttackEnemyState(EnemyStateMachine enemyStateMachine, EnemyStateSharedData enemyStateSharedData) : base(enemyStateMachine, enemyStateSharedData)
     {
     }
 
     public override void Start()
     {
         // Debug.Log("Attack Start");
-        coroutine = stateMachine.StartCoroutine(AttackCoroutine());
+        coroutine = enemyStateMachine.StartCoroutine(AttackCoroutine());
     }
 
     public override void Stop()
@@ -509,13 +576,13 @@ class AttackState : State
         {
             debugLightElement.SetActive(false);
 
-            stateMachine.StopCoroutine(coroutine);
+            enemyStateMachine.StopCoroutine(coroutine);
         }
     }
 
     private IEnumerator AttackCoroutine()
     {
-        int enemyAttackId = stateSharedData.enemyAttackId;
+        int enemyAttackId = enemyStateSharedData.enemyAttackId;
 
 
         float elapsed = 0f;
@@ -541,13 +608,15 @@ class AttackState : State
 
         debugLightElement.SetActive(false);
 
-        stateMachine.ChangeState(StateType.MoveToNewLocation);
+
+
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.MoveToNewLocation);
 
         coroutine = null;
     }
 }
 
-class DamageState : State
+class DamageEnemyState : EnemyState
 {
 
     public float faintDuration;
@@ -555,14 +624,24 @@ class DamageState : State
 
     private Coroutine coroutine = null;
 
-    public DamageState(StateMachine stateMachine, StateSharedData stateSharedData) : base(stateMachine, stateSharedData)
+    public DamageEnemyState(EnemyStateMachine enemyStateMachine, EnemyStateSharedData enemyStateSharedData) : base(enemyStateMachine, enemyStateSharedData)
     {
     }
 
     public override void Start()
     {
         // Debug.Log("Damage Start");
-        coroutine = stateMachine.StartCoroutine(DamageCoroutine());
+        coroutine = enemyStateMachine.StartCoroutine(DamageCoroutine());
+    }
+
+    public override void Stop()
+    {
+        // Debug.Log("Damage Stop");
+
+        if (coroutine != null)
+        {
+            enemyStateMachine.StopCoroutine(coroutine);
+        }
     }
 
     private IEnumerator DamageCoroutine()
@@ -577,14 +656,229 @@ class DamageState : State
             yield return null;
         }
 
-        stateMachine.ChangeState(StateType.MoveToNewLocation);
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.MoveToNewLocation);
 
         coroutine = null;
     }
 }
 
 
-class Utilities
+class DeadEnemyState : EnemyState
+{
+    public Transform deathPosition;
+
+    public GameObject debugLightElement;
+
+    private Coroutine coroutine = null;
+
+    public DeadEnemyState(EnemyStateMachine enemyStateMachine, EnemyStateSharedData enemyStateSharedData) : base(enemyStateMachine, enemyStateSharedData)
+    {
+    }
+
+    public override void Start()
+    {
+        // Debug.Log("Dead Start");
+        coroutine = enemyStateMachine.StartCoroutine(DeadCoroutine());
+    }
+
+    private IEnumerator DeadCoroutine()
+    {
+        debugLightElement.SetActive(false);
+
+        float goingUpDuration = 0.5f;
+
+        float elapsed = 0f;
+
+        Vector3 fromPosition = transform.position;
+        Vector3 toPosition = transform.position + new Vector3(0.0f, 50.0f, 0.0f);
+
+
+        while (elapsed < goingUpDuration)
+        {
+            float x = elapsed / goingUpDuration;
+            x = Utilities.EasyOut(x);
+            x = Utilities.EasyOut(x);
+
+            transform.position = Vector3.Lerp(fromPosition, toPosition, x);
+
+            elapsed += Time.deltaTime;
+
+            yield return null;
+        }
+
+        
+        debugLightElement.SetActive(true);
+
+        Vector3 targetPosiion = deathPosition.position + new Vector3(0.0f, 0.0f, 1.0f);
+
+
+        Vector3 directionToPlayer = Vector3.ProjectOnPlane(player.position - targetPosiion, Vector3.up).normalized;
+        transform.rotation = Quaternion.LookRotation(Vector3.back, Vector3.up);
+
+
+        float goingDownDuration = 0.5f;
+
+        elapsed = 0f;
+
+        fromPosition = targetPosiion + new Vector3(0.0f, 50.0f, 0.0f);
+        toPosition = targetPosiion;
+
+
+        while (elapsed < goingDownDuration)
+        {
+            float x = elapsed / goingDownDuration;
+            x = Utilities.EasyIn(x);
+            x = Utilities.EasyIn(x);
+
+            transform.position = Vector3.Lerp(fromPosition, toPosition, x);
+
+            elapsed += Time.deltaTime;
+
+            yield return null;
+        }
+
+
+        transform.position = toPosition;
+
+        cinemachineCommonImpulseSource.GenerateImpulse(shakeCommonImpulseAmplitude);
+        cinemachineDirectImpulseSource.GenerateImpulse(Vector3.down * shakeDirectImpulseAmplitude * 2.0f);
+
+
+
+        yield return new WaitForSeconds(2.0f);
+
+
+        float fromIntensity = debugLightElement.GetComponent<Light>().intensity;
+        float toIntensity = 0.0f;
+
+        float lightDownDuration = 2.0f;
+
+        elapsed = 0f;
+        
+
+        while (elapsed < lightDownDuration)
+        {
+            float x = elapsed / lightDownDuration;
+            x = Utilities.EasyInOut(x);
+            x = Utilities.EasyInOut(x);
+
+            debugLightElement.GetComponent<Light>().intensity = Mathf.Lerp(fromIntensity, toIntensity, x);
+
+            elapsed += Time.deltaTime;
+
+            yield return null;
+        }
+
+
+        debugLightElement.SetActive(false);
+        debugLightElement.GetComponent<Light>().intensity = fromIntensity;
+
+
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.None);
+
+        coroutine = null;
+    }
+}
+
+
+class StandingOverPlayersCorpseEnemyState : EnemyState
+{
+
+    public GameObject debugLightElement;
+
+    private Coroutine coroutine = null;
+
+    public StandingOverPlayersCorpseEnemyState(EnemyStateMachine enemyStateMachine, EnemyStateSharedData enemyStateSharedData) : base(enemyStateMachine, enemyStateSharedData)
+    {
+    }
+
+    public override void Start()
+    {
+        // Debug.Log("StandingOverPlayersCorpse Start");
+        coroutine = enemyStateMachine.StartCoroutine(StandingOverPlayersCorpseCoroutine());
+    }
+
+    public override void Stop()
+    {
+        // Debug.Log("StandingOverPlayersCorpse Stop");
+
+        if (coroutine != null)
+        {
+            enemyStateMachine.StopCoroutine(coroutine);
+        }
+    }
+
+    private IEnumerator StandingOverPlayersCorpseCoroutine()
+    {
+        debugLightElement.SetActive(false);
+
+        float goingUpDuration = 0.5f;
+
+        float elapsed = 0f;
+
+        Vector3 fromPosition = transform.position;
+        Vector3 toPosition = transform.position + new Vector3(0.0f, 50.0f, 0.0f);
+
+
+        while (elapsed < goingUpDuration)
+        {
+            float x = elapsed / goingUpDuration;
+            x = Utilities.EasyOut(x);
+            x = Utilities.EasyOut(x);
+
+            transform.position = Vector3.Lerp(fromPosition, toPosition, x);
+
+            elapsed += Time.deltaTime;
+
+            yield return null;
+        }
+
+        
+        debugLightElement.SetActive(true);
+
+        Vector3 targetPosiion = player.position + new Vector3(0.0f, 0.0f, 1.0f);
+
+
+        Vector3 directionToPlayer = Vector3.ProjectOnPlane(player.position - targetPosiion, Vector3.up).normalized;
+        transform.rotation = Quaternion.LookRotation(directionToPlayer, Vector3.up);
+
+
+        float goingDownDuration = 0.5f;
+
+        elapsed = 0f;
+
+        fromPosition = targetPosiion + new Vector3(0.0f, 50.0f, 0.0f);
+        toPosition = targetPosiion;
+
+
+        while (elapsed < goingDownDuration)
+        {
+            float x = elapsed / goingDownDuration;
+            x = Utilities.EasyIn(x);
+            x = Utilities.EasyIn(x);
+
+            transform.position = Vector3.Lerp(fromPosition, toPosition, x);
+
+            elapsed += Time.deltaTime;
+
+            yield return null;
+        }
+
+        transform.position = toPosition;
+
+        cinemachineCommonImpulseSource.GenerateImpulse(shakeCommonImpulseAmplitude);
+        cinemachineDirectImpulseSource.GenerateImpulse(Vector3.down * shakeDirectImpulseAmplitude * 2.0f);
+
+
+        enemyStateMachine.ChangeEnemyState(EnemyStateType.None);
+
+        coroutine = null;
+    }
+}
+
+
+
+public class Utilities
 {
 
     public static float EasyOut(float x)
@@ -595,5 +889,10 @@ class Utilities
     public static float EasyIn(float x)
     {
         return x * x;
+    }
+
+    public static float EasyInOut(float x)
+    {
+        return -2.0f * x * x * x + 3.0f * x * x;
     }
 }
