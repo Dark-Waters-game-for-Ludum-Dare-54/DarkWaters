@@ -198,7 +198,8 @@ StyleCopReport.xml
 *_p.c
 *_h.h
 *.ilk
-*.meta
+# we need .meta files for Unity3D
+# *.meta
 *.obj
 *.iobj
 *.pch
