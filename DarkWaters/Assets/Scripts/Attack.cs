@@ -10,6 +10,8 @@ public class Attack : MonoBehaviour
     public float AttackTimeout = 0.5f;
 
 
+    private PlayerInputs inputActions;
+
     private float _attackTimeoutDelta;
 
     private PlayerInput _playerInput;
@@ -18,26 +20,29 @@ public class Attack : MonoBehaviour
 
     private void Start()
     {
-        _playerInput = GetComponent<PlayerInput>();
-        _input = GetComponent<StarterAssetsInputs>();
-
+        inputActions = new PlayerInputs();
+        inputActions.Enable();
+        
         _attackTimeoutDelta = AttackTimeout;
+
+        inputActions.Player.Attack.performed += onAttackTriggered;
     }
 
 
     private void Update()
     {
-        
-        if (_input.attack && _attackTimeoutDelta <= 0.0f)
-        {
-            TriggerOnAttack();
-            _attackTimeoutDelta = AttackTimeout;
-            _input.attack = false;
-        }
-
         _attackTimeoutDelta -= Time.deltaTime;
     }
 
+
+    private void onAttackTriggered(InputAction.CallbackContext obj)
+    {
+        if (_attackTimeoutDelta <= 0.0f)
+        {
+            TriggerOnAttack();
+            _attackTimeoutDelta = AttackTimeout;
+        }
+    }
 
 
     private void TriggerOnAttack()
