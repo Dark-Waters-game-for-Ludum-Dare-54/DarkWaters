@@ -49,7 +49,7 @@ enum StateType {
 
 class State {
 
-    //static Dictionary<StateType, State> states =  
+    //static Dictionary<StateType, State> states =
 
 
 
